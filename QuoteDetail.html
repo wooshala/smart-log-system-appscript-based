@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 13px;
+      color: #222;
+      margin: 0;
+      padding: 16px;
+      background: #f7f8fb;
+    }
+
+    .wrap {
+      max-width: 100%;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #d9deea;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1a2f57;
+      margin-bottom: 12px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 120px 1fr 120px 1fr;
+      gap: 8px 12px;
+      align-items: center;
+    }
+
+    .label {
+      font-weight: 700;
+      color: #5a6782;
+    }
+
+    .value {
+      color: #1d2433;
+      word-break: break-word;
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a2f57;
+      margin-bottom: 10px;
+    }
+
+    .sub-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #243659;
+      margin: 10px 0 6px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      margin-top: 8px;
+    }
+
+    th, td {
+      border: 1px solid #dfe4ef;
+      padding: 8px 10px;
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    th {
+      background: #eef2f9;
+      color: #243659;
+      font-weight: 700;
+    }
+
+    .note-box {
+      white-space: pre-wrap;
+      line-height: 1.6;
+      background: #fafbfd;
+      border: 1px solid #e2e7f1;
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #cfd6e4;
+      background: #fff;
+      color: #233456;
+      text-decoration: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .btn:hover {
+      background: #f3f6fb;
+    }
+
+    .muted {
+      color: #7b8498;
+    }
+
+    .log-card {
+      background: #fafbfd;
+      border: 1px solid #e2e7f1;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .summary-box {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid #e2e7f1;
+      line-height: 1.6;
+    }
+
+    .changed {
+      color: #c0392b;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="title">견적 상세</div>
+      <div id="basicInfo"></div>
+      <div class="actions" id="topActions"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">객실 내역</div>
+      <div id="itemsWrap"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">변경 이력</div>
+      <div id="logWrap"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">비고</div>
+      <div id="noteWrap"></div>
+    </div>
+  </div>
+
+  <script>
+    const DETAIL = <?!= detailJson || '{}' ?>;
+
+    function escapeHtml(v) {
+      return String(v || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function nl2br(v) {
+      return escapeHtml(v || '').replace(/\n/g, '<br>');
+    }
+
+    function itemKey(it) {
+      return [
+        it.roomType || '',
+        it.checkIn || '',
+        it.checkOut || ''
+      ].join('|');
+    }
+
+    function buildCompareMap(items) {
+      const map = {};
+      (items || []).forEach(function(it) {
+        map[itemKey(it)] = it;
+      });
+      return map;
+    }
+
+    function markChanged(value, changed) {
+      if (!changed) return escapeHtml(value);
+      return '<span class="changed">' + escapeHtml(value) + '</span>';
+    }
+
+    function renderItemsTable(items) {
+      if (!items || !items.length) {
+        return '<div class="muted">객실 내역이 없습니다.</div>';
+      }
+
+      let rows = '';
+      items.forEach(function(it) {
+        rows += `
+          <tr>
+            <td>${escapeHtml(it.roomType)}</td>
+            <td>${escapeHtml(it.rooms)}</td>
+            <td>${escapeHtml(it.unitPriceDisplay || (Number(it.unitPrice || 0).toLocaleString() + '원'))}</td>
+            <td>${escapeHtml(it.checkIn)}</td>
+            <td>${escapeHtml(it.checkOut)}</td>
+            <td>${escapeHtml(it.nights)}</td>
+            <td>${escapeHtml(it.subtotalDisplay || (Number(it.subtotal || 0).toLocaleString() + '원'))}</td>
+          </tr>
+        `;
+      });
+
+      return `
+        <table>
+          <thead>
+            <tr>
+              <th>객실타입</th>
+              <th>객실수</th>
+              <th>단가</th>
+              <th>체크인</th>
+              <th>체크아웃</th>
+              <th>박수</th>
+              <th>금액</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+
+    function renderCompareTable(items, otherItems, mode) {
+      if (!items || !items.length) {
+        return '<div class="muted">객실 내역이 없습니다.</div>';
+      }
+
+      const otherMap = buildCompareMap(otherItems || []);
+      let rows = '';
+
+      items.forEach(function(it) {
+        const other = otherMap[itemKey(it)] || {};
+
+        const roomTypeChanged = (it.roomType || '') !== (other.roomType || '');
+        const roomsChanged = Number(it.rooms || 0) !== Number(other.rooms || 0);
+        const unitPriceChanged = Number(it.unitPrice || 0) !== Number(other.unitPrice || 0);
+        const checkInChanged = (it.checkIn || '') !== (other.checkIn || '');
+        const checkOutChanged = (it.checkOut || '') !== (other.checkOut || '');
+        const nightsChanged = Number(it.nights || 0) !== Number(other.nights || 0);
+        const subtotalChanged = Number(it.subtotal || 0) !== Number(other.subtotal || 0);
+
+        rows += `
+          <tr>
+            <td>${markChanged(it.roomType, roomTypeChanged)}</td>
+            <td>${markChanged(it.rooms, roomsChanged)}</td>
+            <td>${markChanged(it.unitPriceDisplay || (Number(it.unitPrice || 0).toLocaleString() + '원'), unitPriceChanged)}</td>
+            <td>${markChanged(it.checkIn, checkInChanged)}</td>
+            <td>${markChanged(it.checkOut, checkOutChanged)}</td>
+            <td>${markChanged(it.nights, nightsChanged)}</td>
+            <td>${markChanged(it.subtotalDisplay || (Number(it.subtotal || 0).toLocaleString() + '원'), subtotalChanged)}</td>
+          </tr>
+        `;
+      });
+
+      return `
+        <table>
+          <thead>
+            <tr>
+              <th>객실타입</th>
+              <th>객실수</th>
+              <th>단가</th>
+              <th>체크인</th>
+              <th>체크아웃</th>
+              <th>박수</th>
+              <th>금액</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+
+    function render() {
+      const d = DETAIL || {};
+
+      document.getElementById('basicInfo').innerHTML = `
+        <div class="grid">
+          <div class="label">견적ID</div><div class="value">${escapeHtml(d.quoteId)}</div>
+          <div class="label">고객명</div><div class="value">${escapeHtml(d.customerName)}</div>
+
+          <div class="label">전화번호</div><div class="value">${escapeHtml(d.customerPhone || '-')}</div>
+          <div class="label">생성일</div><div class="value">${escapeHtml(d.createdAt || '-')}</div>
+
+          <div class="label">수정일</div><div class="value">${escapeHtml(d.updatedAt || '-')}</div>
+          <div class="label">총금액</div><div class="value">${escapeHtml(d.totalAmountDisplay || '-')}</div>
+
+          <div class="label">차량</div><div class="value">${escapeHtml(d.vehicleType || '-')} ${escapeHtml(d.vehicleCount ? d.vehicleCount + '대' : '')}</div>
+          <div class="label">마지막 발송일</div><div class="value">${escapeHtml(d.lastSentAt || '-')}</div>
+
+          <div class="label">발송번호</div><div class="value">${escapeHtml(d.lastSendTo || '-')}</div>
+          <div class="label">발송결과</div><div class="value">${escapeHtml(d.lastSendResult || '-')}</div>
+        </div>
+      `;
+
+      const actions = [];
+      if (d.pdfUrl) {
+        actions.push(`<a class="btn" href="${escapeHtml(d.pdfUrl)}" target="_blank">PDF 보기</a>`);
+      } else {
+        actions.push(`<span class="btn muted">PDF 없음</span>`);
+      }
+      actions.push(`<button class="btn" onclick="google.script.host.close()">닫기</button>`);
+      document.getElementById('topActions').innerHTML = actions.join('');
+
+      document.getElementById('itemsWrap').innerHTML = renderItemsTable(d.items || []);
+
+      const logs = d.logs || [];
+      if (!logs.length) {
+        document.getElementById('logWrap').innerHTML = '<div class="muted">변경 이력 없음</div>';
+      } else {
+        let logHtml = '';
+
+        logs.forEach(function(log) {
+          const beforeTotalChanged = Number(log.beforeTotalAmount || 0) !== Number(log.afterTotalAmount || 0);
+
+          logHtml += `
+            <div class="log-card">
+              <div><b>일시:</b> ${escapeHtml(log.ts || '-')}</div>
+              <div><b>작업자:</b> ${escapeHtml(log.employeeName || '-')}</div>
+              <div><b>유형:</b> ${escapeHtml(log.action || '-')}</div>
+              <div><b>변경내용:</b> ${escapeHtml(log.changeSummary || '-')}</div>
+              ${log.sourceQuoteId ? `<div><b>원본견적:</b> ${escapeHtml(log.sourceQuoteId)}</div>` : ''}
+
+              <div class="sub-title">변경 전 견적 ${log.beforeQuoteId ? '(' + escapeHtml(log.beforeQuoteId) + ')' : ''}</div>
+              <div><b>총금액:</b> ${markChanged(log.beforeTotalAmountDisplay || '-', beforeTotalChanged)}</div>
+              ${renderCompareTable(log.beforeItems || [], log.afterItems || [], 'before')}
+
+              <div class="sub-title">변경 후 견적 ${log.afterQuoteId ? '(' + escapeHtml(log.afterQuoteId) + ')' : ''}</div>
+              <div><b>총금액:</b> ${markChanged(log.afterTotalAmountDisplay || '-', beforeTotalChanged)}</div>
+              ${renderCompareTable(log.afterItems || [], log.beforeItems || [], 'after')}
+
+              <div class="summary-box">
+                <b>변경 요약:</b> ${escapeHtml(log.changeSummary || '-')}
+              </div>
+            </div>
+          `;
+        });
+
+        document.getElementById('logWrap').innerHTML = logHtml;
+      }
+
+      document.getElementById('noteWrap').innerHTML =
+        `<div class="note-box">${d.extraNote ? nl2br(d.extraNote) : '<span class="muted">비고 없음</span>'}</div>`;
+    }
+
+    render();
+  </script>
+</body>
+</html>

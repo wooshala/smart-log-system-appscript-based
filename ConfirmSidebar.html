@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>숙박 확인서</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css">
+<style>
+  :root {
+    --navy: #0f2744;
+    --navy-light: #1a3a5c;
+    --gold: #c9a84c;
+    --gold-lt: #e4c97a;
+    --bg: #f4f6fb;
+    --card: #ffffff;
+    --border: #dde3ee;
+    --text: #1e2d42;
+    --muted: #7a8aA0;
+    --success: #2e7d32;
+    --error: #c62828;
+    --transition: all 0.2s ease;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+    padding: 16px 20px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .header-logo {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    object-fit: contain;
+    background: rgba(255,255,255,0.1);
+  }
+  .header-title {
+    color: white;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+  .header-sub {
+    color: var(--gold-lt);
+    font-size: 10px;
+    margin-top: 2px;
+    letter-spacing: 0.3px;
+  }
+
+  /* ── Step Indicator ── */
+  .steps {
+    display: flex;
+    align-items: center;
+    padding: 14px 20px;
+    background: white;
+    border-bottom: 1px solid var(--border);
+    gap: 0;
+  }
+  .step-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    position: relative;
+  }
+  .step-circle {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--border);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    flex-shrink: 0;
+  }
+  .step-label {
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 500;
+    transition: var(--transition);
+    white-space: nowrap;
+  }
+  .step-line {
+    height: 2px;
+    flex: 1;
+    background: var(--border);
+    margin: 0 6px;
+    transition: var(--transition);
+  }
+  .step-item.active .step-circle {
+    background: var(--navy);
+    color: white;
+  }
+  .step-item.active .step-label {
+    color: var(--navy);
+    font-weight: 700;
+  }
+  .step-item.done .step-circle {
+    background: var(--gold);
+    color: white;
+  }
+  .step-item.done .step-label {
+    color: var(--gold);
+  }
+  .step-line.done { background: var(--gold); }
+  .step-line.active { background: var(--navy); }
+
+  /* ── Content ── */
+  .content { padding: 16px; }
+
+  /* ── Card ── */
+  .card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 8px rgba(15,39,76,0.07);
+    border: 1px solid var(--border);
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--navy);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--gold);
+    display: inline-block;
+  }
+
+  /* ── Floating Label Input ── */
+  .field-wrap {
+    position: relative;
+    margin-bottom: 14px;
+  }
+  .field-wrap label {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .field-wrap input,
+  .field-wrap select {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--text);
+    background: white;
+    outline: none;
+    transition: var(--transition);
+  }
+  .field-wrap input:focus,
+  .field-wrap select:focus {
+    border-color: var(--navy);
+    box-shadow: 0 0 0 3px rgba(15,39,76,0.08);
+  }
+  .field-wrap input[type="date"] { cursor: pointer; }
+
+  .date-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* ── Result Input ── */
+  .result-input {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--navy);
+    background: white;
+    font-family: inherit;
+    outline: none;
+    transition: var(--transition);
+    margin-top: 4px;
+  }
+  .result-input:focus {
+    border-color: var(--navy);
+    box-shadow: 0 0 0 3px rgba(15,39,76,0.08);
+  }
+  .result-input::placeholder {
+    font-weight: 400;
+    color: #bbb;
+    font-size: 11px;
+  }
+
+  /* ── Info Grid ── */
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .info-item label {
+    display: block;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 3px;
+  }
+  .info-val {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* ── Nights Table ── */
+  .nights-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+  }
+  .nights-table th {
+    background: var(--navy);
+    color: white;
+    padding: 7px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 0.3px;
+  }
+  .nights-table td {
+    padding: 7px 8px;
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+    transition: var(--transition);
+  }
+  .nights-table tr:nth-child(even) td { background: #f8f9fc; }
+  .nights-table tr:hover td { background: #eef2fb; }
+  .nights-table .amt-input {
+    width: 90px;
+    padding: 4px 6px;
+    border: 1.5px solid var(--border);
+    border-radius: 5px;
+    text-align: right;
+    font-family: inherit;
+    font-size: 12px;
+    outline: none;
+    transition: var(--transition);
+  }
+  .nights-table .amt-input:focus { border-color: var(--gold); }
+  .nights-table .amt-input.edited {
+    border-color: var(--gold);
+    background: #fffbf0;
+    color: #8b6914;
+    font-weight: 700;
+  }
+  .total-row td {
+    background: #fdf6e3 !important;
+    font-weight: 700;
+    color: var(--navy);
+    border-top: 2px solid var(--gold);
+  }
+  .total-amt-display {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--gold);
+  }
+
+  /* ── Pay Method ── */
+  .pay-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .pay-btn {
+    padding: 7px 4px;
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    background: white;
+    font-size: 11px;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: center;
+    transition: var(--transition);
+    color: var(--text);
+  }
+  .pay-btn:hover { border-color: var(--navy); color: var(--navy); background: #eef2fb; }
+  .pay-btn.selected {
+    background: var(--navy);
+    color: white;
+    border-color: var(--navy);
+    font-weight: 700;
+  }
+
+  /* ── Buttons ── */
+  .btn {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+    letter-spacing: 0.2px;
+  }
+  .btn::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    transition: 0.5s;
+  }
+  .btn:hover::after { left: 100%; }
+  .btn-gold {
+    background: linear-gradient(135deg, var(--gold), var(--gold-lt));
+    color: var(--navy);
+    box-shadow: 0 4px 12px rgba(201,168,76,0.3);
+  }
+  .btn-gold:hover { box-shadow: 0 6px 16px rgba(201,168,76,0.4); transform: translateY(-1px); }
+  .btn-navy {
+    background: linear-gradient(135deg, var(--navy), var(--navy-light));
+    color: white;
+    box-shadow: 0 4px 12px rgba(15,39,76,0.25);
+  }
+  .btn-navy:hover { box-shadow: 0 6px 16px rgba(15,39,76,0.35); transform: translateY(-1px); }
+  .btn-outline {
+    background: white;
+    color: var(--navy);
+    border: 1.5px solid var(--navy);
+  }
+  .btn-outline:hover { background: var(--navy); color: white; }
+  .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important; }
+
+  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .btn-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; margin-top: 10px; }
+
+  /* ── Status ── */
+  .status {
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 10px;
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+  .status.success { background: #e8f5e9; color: var(--success); border: 1px solid #a5d6a7; display: block; }
+  .status.error { background: #ffebee; color: var(--error); border: 1px solid #ef9a9a; display: block; }
+  .status.info { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── Loading ── */
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Confirm Tag ── */
+  .confirm-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--navy);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+    letter-spacing: 0.3px;
+  }
+  .confirm-tag .dot { width: 6px; height: 6px; background: var(--gold); border-radius: 50%; }
+
+  /* ── PDF Link ── */
+  .pdf-link-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: #f0f4ff;
+    border: 1px solid #c5d0e8;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    text-decoration: none;
+    color: var(--navy);
+    font-weight: 600;
+    font-size: 12px;
+    transition: var(--transition);
+  }
+  .pdf-link-wrap:hover { background: #e0e8ff; }
+  .pdf-icon { font-size: 18px; }
+  .lang-badge {
+    margin-left: auto;
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+  .lang-badge.ko { background: var(--navy); color: white; }
+  .lang-badge.en { background: var(--gold); color: var(--navy); }
+
+  /* ── Zero Warning ── */
+  .zero-warning {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 11px;
+    color: #856404;
+    margin-bottom: 10px;
+    display: none;
+  }
+</style>
+</head>
+<body>
+<!-- Header -->
+<div class="header">
+  <img class="header-logo"
+       src="https://lh3.googleusercontent.com/d/1IMYfFJ_PtJACjTARyhz085Ao77kK4pQ7"
+       onerror="this.style.display='none'"
+       alt="logo">
+  <div>
+    <div class="header-title">숙박 확인서 발급</div>
+    <div class="header-sub">HOTEL LABEL · CONFIRMATION SYSTEM</div>
+  </div>
+</div>
+
+<!-- Step Indicator -->
+<div class="steps" id="stepIndicator">
+  <div class="step-item active" id="si1">
+    <div class="step-circle">1</div>
+    <div class="step-label">조회</div>
+  </div>
+  <div class="step-line" id="sl1"></div>
+  <div class="step-item" id="si2">
+    <div class="step-circle">2</div>
+    <div class="step-label">확인</div>
+  </div>
+  <div class="step-line" id="sl2"></div>
+  <div class="step-item" id="si3">
+    <div class="step-circle">3</div>
+    <div class="step-label">발송</div>
+  </div>
+</div>
+
+<!-- Content -->
+<div class="content">
+
+  <!-- ══ STEP 1: 조회 ══ -->
+  <div id="step1">
+    <div class="card">
+      <div class="card-title">예약 조회</div>
+
+      <div class="field-wrap">
+        <label>투숙객 이름</label>
+        <input type="text" id="guestName" placeholder="이름 입력 후 검색">
+      </div>
+
+      <div class="date-row">
+        <div class="field-wrap">
+          <label>체크인 (부터)</label>
+          <input type="date" id="fromDate">
+        </div>
+        <div class="field-wrap">
+          <label>체크아웃 (까지)</label>
+          <input type="date" id="toDate">
+        </div>
+      </div>
+
+      <button class="btn btn-gold" onclick="doSearch()">
+        🔍 예약 조회
+      </button>
+      <div id="searchStatus" class="status"></div>
+    </div>
+  </div>
+
+  <!-- ══ STEP 2: 확인 ══ -->
+  <div id="step2" style="display:none;">
+    <div class="card">
+      <div class="card-title">예약 정보 확인</div>
+
+      <div class="info-grid">
+        <div class="info-item">
+          <label>투숙객명</label>
+          <input type="text" class="result-input" id="r_guest" placeholder="이름 직접 수정 가능">
+        </div>
+        <div class="info-item">
+          <label>객실</label>
+          <input type="text" class="result-input" id="r_room" placeholder="객실명 직접 수정 가능">
+        </div>
+        <div class="info-item">
+          <label>체크인</label>
+          <div class="info-val" id="r_checkin">-</div>
+        </div>
+        <div class="info-item">
+          <label>체크아웃</label>
+          <div class="info-val" id="r_checkout">-</div>
+        </div>
+        <div class="info-item">
+          <label>박수</label>
+          <div class="info-val" id="r_nights">-</div>
+        </div>
+        <div class="info-item">
+          <label>총 금액</label>
+          <div class="info-val total-amt-display" id="r_total">-</div>
+        </div>
+      </div>
+
+      <!-- 금액 0 경고 -->
+      <div class="zero-warning" id="zeroWarn">
+        ⚠️ 금액이 0원입니다. 아래 표에서 직접 금액을 입력해 주세요.
+      </div>
+
+      <!-- 박별 금액 테이블 -->
+      <table class="nights-table" id="nightsTable">
+        <thead>
+          <tr>
+            <th>날짜</th>
+            <th>구분</th>
+            <th>금액 (원)</th>
+          </tr>
+        </thead>
+        <tbody id="nightsBody"></tbody>
+        <tfoot>
+          <tr class="total-row">
+            <td colspan="2" style="text-align:right; font-size:12px;">합 계</td>
+            <td><span class="total-amt-display" id="footerTotal">0</span></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- 결제 방법 -->
+    <div class="card">
+      <div class="card-title">결제 방법</div>
+      <div class="pay-grid" id="payGrid">
+        <button class="pay-btn selected" onclick="selectPay(this)" data-val="법인카드">법인카드</button>
+        <button class="pay-btn" onclick="selectPay(this)" data-val="현금">현금</button>
+        <button class="pay-btn" onclick="selectPay(this)" data-val="계좌이체">계좌이체</button>
+        <button class="pay-btn" onclick="selectPay(this)" data-val="신용카드">신용카드</button>
+        <button class="pay-btn" onclick="selectPay(this)" data-val="OTA">OTA</button>
+        <button class="pay-btn" onclick="selectPay(this)" data-val="기타">기타</button>
+      </div>
+    </div>
+
+    <!-- PDF 생성 버튼 -->
+    <div class="btn-row">
+      <button class="btn btn-navy" id="confirmBtnKo" onclick="doConfirm('ko')">
+        📄 한글 PDF
+      </button>
+      <button class="btn btn-gold" id="confirmBtnEn" onclick="doConfirm('en')">
+        📋 영문 PDF
+      </button>
+    </div>
+    <button class="btn btn-outline" style="margin-top:8px;" onclick="goBack()">
+      ← 다시 조회
+    </button>
+    <div id="confirmStatus" class="status"></div>
+  </div>
+
+  <!-- ══ STEP 3: 발송 ══ -->
+  <div id="step3" style="display:none;">
+    <div class="card">
+      <div class="card-title">확인서 발급 완료</div>
+
+      <div id="confirmTagArea"></div>
+      <div id="pdfLinkArea"></div>
+
+      <div class="field-wrap" style="margin-top:12px;">
+        <label>SMS 수신 번호</label>
+        <input type="tel" id="phoneInput" placeholder="010-0000-0000">
+      </div>
+
+      <button class="btn btn-gold" id="smsBtn" onclick="doSms()" style="margin-top:4px;">
+        📱 SMS 발송
+      </button>
+      <button class="btn btn-outline" style="margin-top:8px;" onclick="resetAll()">
+        🔄 처음으로
+      </button>
+      <div id="smsStatus" class="status"></div>
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<script>
+// ═══════════════════════════════════════
+//  전역 상태
+// ═══════════════════════════════════════
+var currentData   = {};   // 서버에서 받은 원본 데이터
+var nightsRows    = [];   // [{date, label, amt}]
+var selectedPay   = '법인카드';
+var savedConfirmId = '';
+var savedPdfUrls  = {};   // {ko: url, en: url}
+
+// ═══════════════════════════════════════
+//  날짜 기본값 세팅 (이번 달)
+// ═══════════════════════════════════════
+(function initDates() {
+  var now   = new Date();
+  var y     = now.getFullYear();
+  var m     = now.getMonth(); // 0-based
+
+  var firstDay = new Date(y, m, 1);
+  var lastDay  = new Date(y, m + 1, 0);
+
+  function fmt(d) {
+    var mm = String(d.getMonth() + 1).padStart(2, '0');
+    var dd = String(d.getDate()).padStart(2, '0');
+    return d.getFullYear() + '-' + mm + '-' + dd;
+  }
+
+  document.getElementById('fromDate').value = fmt(firstDay);
+  document.getElementById('toDate').value   = fmt(lastDay);
+})();
+
+// ═══════════════════════════════════════
+//  Step 관리
+// ═══════════════════════════════════════
+function showStep(n) {
+  [1, 2, 3].forEach(function(i) {
+    document.getElementById('step' + i).style.display = (i === n) ? '' : 'none';
+  });
+  updateStepIndicator(n);
+}
+
+function updateStepIndicator(active) {
+  [1, 2, 3].forEach(function(i) {
+    var item = document.getElementById('si' + i);
+    item.className = 'step-item';
+    if (i < active)  item.className += ' done';
+    if (i === active) item.className += ' active';
+  });
+  [1, 2].forEach(function(i) {
+    var line = document.getElementById('sl' + i);
+    line.className = 'step-line';
+    if (i < active)  line.className += ' done';
+    if (i === active) line.className += ' active';
+  });
+}
+
+function goBack() {
+  showStep(1);
+  document.getElementById('confirmStatus').className = 'status';
+}
+
+function resetAll() {
+  currentData    = {};
+  nightsRows     = [];
+  selectedPay    = '법인카드';
+  savedConfirmId = '';
+  savedPdfUrls   = {};
+  document.getElementById('guestName').value = '';
+  document.getElementById('confirmTagArea').innerHTML = '';
+  document.getElementById('pdfLinkArea').innerHTML    = '';
+  document.getElementById('phoneInput').value         = '';
+  showStep(1);
+  setStatus('searchStatus', '', '');
+}
+
+// ═══════════════════════════════════════
+//  상태 메시지
+// ═══════════════════════════════════════
+function setStatus(id, type, msg) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  if (!msg) { el.className = 'status'; el.textContent = ''; return; }
+  el.className = 'status ' + type;
+  el.textContent = msg;
+}
+
+// ═══════════════════════════════════════
+//  결제 방법 선택
+// ═══════════════════════════════════════
+function selectPay(btn) {
+  document.querySelectorAll('.pay-btn').forEach(function(b) {
+    b.classList.remove('selected');
+  });
+  btn.classList.add('selected');
+  selectedPay = btn.getAttribute('data-val');
+}
+
+// ═══════════════════════════════════════
+//  금액 파싱 헬퍼
+// ═══════════════════════════════════════
+function parseAmt_(v) {
+  if (v === null || v === undefined) return 0;
+  if (typeof v === 'number') return Math.round(v);
+  var s = String(v).replace(/[^\d.]/g, '');
+  if (!s) return 0;
+  return Math.round(parseFloat(s)) || 0;
+}
+
+function fmtAmt(n) {
+  return Number(n).toLocaleString('ko-KR');
+}
+
+// ═══════════════════════════════════════
+//  날짜 파싱 헬퍼
+// ═══════════════════════════════════════
+function parseDateStr(s) {
+  if (!s) return null;
+  s = String(s).trim();
+  // YYYY-MM-DD or YYYY/MM/DD
+  var m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+  // 한국어: 2025년 3월 5일
+  var km = s.match(/(\d{4})[년]\s*(\d{1,2})[월]\s*(\d{1,2})[일]/);
+  if (km) return new Date(+km[1], +km[2] - 1, +km[3]);
+  // MM/DD/YYYY
+  var us = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (us) return new Date(+us[3], +us[1] - 1, +us[2]);
+  return null;
+}
+
+function dateStr(d) {
+  if (!d) return '';
+  var mm = String(d.getMonth() + 1).padStart(2, '0');
+  var dd = String(d.getDate()).padStart(2, '0');
+  return (d.getMonth() + 1) + '/' + d.getDate() + ' (' + ['일','월','화','수','목','금','토'][d.getDay()] + ')';
+}
+
+// ═══════════════════════════════════════
+//  박별 테이블 빌드
+// ═══════════════════════════════════════
+function buildNightsTable(result) {
+  var tbody = document.getElementById('nightsBody');
+  tbody.innerHTML = '';
+  nightsRows = [];
+
+  var ciDate = parseDateStr(result.checkIn  || result.checkin  || result.check_in);
+  var coDate = parseDateStr(result.checkOut || result.checkout || result.check_out);
+  var totalAmt = parseAmt_(
+    result.totalAmt || result.total_amt || result.amount ||
+    result.totalAmount || result.total || 0
+  );
+
+  // 대실 (당일)
+  var isSameDay = ciDate && coDate &&
+    ciDate.getFullYear() === coDate.getFullYear() &&
+    ciDate.getMonth()    === coDate.getMonth()    &&
+    ciDate.getDate()     === coDate.getDate();
+
+  if (isSameDay) {
+    nightsRows.push({
+      date: ciDate ? (ciDate.getMonth()+1) + '/' + ciDate.getDate() : '-',
+      label: '대실',
+      amt: totalAmt
+    });
+  } else {
+    var nights = parseAmt_(result.nights || result.numNights || result.night_count) || 1;
+    if (ciDate && coDate) {
+      nights = Math.round((coDate - ciDate) / 86400000) || nights;
+    }
+    var perNight = nights > 0 ? Math.round(totalAmt / nights) : totalAmt;
+
+    for (var i = 0; i < nights; i++) {
+      var d = ciDate ? new Date(ciDate.getTime() + i * 86400000) : null;
+      nightsRows.push({
+        date: d ? dateStr(d) : ('Night ' + (i+1)),
+        label: (i + 1) + '박',
+        amt: perNight
+      });
+    }
+  }
+
+  // 렌더링
+  nightsRows.forEach(function(row, idx) {
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + row.date + '</td>' +
+      '<td>' + row.label + '</td>' +
+      '<td>' +
+        '<input class="amt-input" type="text" ' +
+               'value="' + fmtAmt(row.amt) + '" ' +
+               'data-idx="' + idx + '" ' +
+               'onchange="onAmtChange(this,' + idx + ')" ' +
+               'oninput="onAmtChange(this,' + idx + ')">' +
+      '</td>';
+    tbody.appendChild(tr);
+  });
+
+  updateFooterTotal();
+
+  // 금액 0 경고
+  var warn = document.getElementById('zeroWarn');
+  if (totalAmt === 0) {
+    warn.style.display = 'block';
+  } else {
+    warn.style.display = 'none';
+  }
+}
+
+function onAmtChange(input, idx) {
+  var raw = parseAmt_(input.value);
+  nightsRows[idx].amt = raw;
+  input.classList.add('edited');
+  updateFooterTotal();
+}
+
+function updateFooterTotal() {
+  var total = nightsRows.reduce(function(s, r) { return s + (r.amt || 0); }, 0);
+  document.getElementById('footerTotal').textContent = fmtAmt(total);
+  document.getElementById('r_total').textContent     = fmtAmt(total) + '원';
+}
+
+// ═══════════════════════════════════════
+//  STEP 1 — 조회
+// ═══════════════════════════════════════
+function doSearch() {
+  var name = document.getElementById('guestName').value.trim();
+  if (!name) {
+    setStatus('searchStatus', 'error', '⚠️ 투숙객 이름을 입력해 주세요.');
+    return;
+  }
+
+  var from = document.getElementById('fromDate').value;
+  var to   = document.getElementById('toDate').value;
+
+  setStatus('searchStatus', 'info', '🔍 조회 중...');
+  var btn = document.querySelector('#step1 .btn-gold');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>조회 중...'; }
+
+  google.script.run
+    .withSuccessHandler(onSearchResult)
+    .withFailureHandler(function(e) {
+      setStatus('searchStatus', 'error', '❌ 조회 실패: ' + e.message);
+      if (btn) { btn.disabled = false; btn.innerHTML = '🔍 예약 조회'; }
+    })
+   .findReservationForConfirm(name, from, to);
+}
+
+// ─── 핵심 수정: 단일 객체로 처리 ───
+function onSearchResult(result) {
+  var btn = document.querySelector('#step1 .btn-gold');
+  if (btn) { btn.disabled = false; btn.innerHTML = '🔍 예약 조회'; }
+
+  // 오류 또는 빈 결과 처리
+  if (!result) {
+    setStatus('searchStatus', 'error', '❌ 예약을 찾을 수 없습니다.');
+    return;
+  }
+  if (result.error) {
+    setStatus('searchStatus', 'error', '❌ ' + result.error);
+    return;
+  }
+
+  // 배열로 반환된 경우 첫 번째 항목 사용
+  if (Array.isArray(result)) {
+    if (result.length === 0) {
+      setStatus('searchStatus', 'error', '❌ 예약을 찾을 수 없습니다.');
+      return;
+    }
+    result = result[0];
+  }
+
+  currentData = result;
+
+  // ── Step 2 UI 채우기 ──
+  document.getElementById('r_guest').value =
+    result.guestName || result.guest_name || result.name || '';
+  document.getElementById('r_room').value  =
+    result.roomName  || result.room_name  || result.room  || '';
+  document.getElementById('r_checkin').textContent  =
+    result.checkIn   || result.checkin    || result.check_in  || '-';
+  document.getElementById('r_checkout').textContent =
+    result.checkOut  || result.checkout   || result.check_out || '-';
+  document.getElementById('r_nights').textContent   =
+    (result.nights || result.numNights || '-') + '박';
+
+  // 전화번호 미리 채우기
+  if (result.phone || result.phoneNumber || result.tel) {
+    document.getElementById('phoneInput').value =
+      result.phone || result.phoneNumber || result.tel || '';
+  }
+
+  // 결제 방법 기본값
+  var pm = result.payMethod || result.pay_method || result.paymentMethod || '법인카드';
+  setPayMethod(pm);
+
+  // 박별 금액 테이블
+  buildNightsTable(result);
+
+  setStatus('searchStatus', '', '');
+  showStep(2);
+}
+
+function setPayMethod(val) {
+  var found = false;
+  document.querySelectorAll('.pay-btn').forEach(function(b) {
+    b.classList.remove('selected');
+    if (b.getAttribute('data-val') === val) {
+      b.classList.add('selected');
+      found = true;
+    }
+  });
+  selectedPay = found ? val : '법인카드';
+  if (!found) {
+    document.querySelector('.pay-btn[data-val="법인카드"]').classList.add('selected');
+  }
+}
+
+// ═══════════════════════════════════════
+//  Payload 수집
+// ═══════════════════════════════════════
+function collectPayload() {
+  var totalAmt = nightsRows.reduce(function(s, r) { return s + (r.amt || 0); }, 0);
+
+  return {
+    guestName : document.getElementById('r_guest').value.trim() || currentData.guestName || '',
+    roomName  : document.getElementById('r_room').value.trim()  || currentData.roomName  || '',
+    checkIn   : currentData.checkIn   || currentData.checkin   || '',
+    checkOut  : currentData.checkOut  || currentData.checkout  || '',
+    nights    : currentData.nights    || nightsRows.length,
+    totalAmt  : totalAmt,
+    payMethod : selectedPay,
+    phone     : document.getElementById('phoneInput').value.trim() || currentData.phone || '',
+    nightlyRows: nightsRows,
+    issueDate : new Date().toLocaleDateString('ko-KR')
+  };
+}
+
+// ═══════════════════════════════════════
+//  STEP 2 — PDF 생성
+// ═══════════════════════════════════════
+function doConfirm(lang) {
+  var payload = collectPayload();
+  if (!payload.guestName) {
+    setStatus('confirmStatus', 'error', '⚠️ 투숙객명을 입력해 주세요.');
+    return;
+  }
+
+  var btnId   = (lang === 'ko') ? 'confirmBtnKo' : 'confirmBtnEn';
+  var btnLabel = (lang === 'ko') ? '📄 한글 PDF'  : '📋 영문 PDF';
+  var btn = document.getElementById(btnId);
+
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>생성 중...'; }
+  document.getElementById('confirmBtnKo').disabled = true;
+  document.getElementById('confirmBtnEn').disabled = true;
+
+  setStatus('confirmStatus', 'info', '📄 확인서 생성 중...');
+
+  google.script.run
+    .withSuccessHandler(function(r) { onSaveResult(r, lang); })
+    .withFailureHandler(function(e) {
+      setStatus('confirmStatus', 'error', '❌ 생성 실패: ' + e.message);
+      document.getElementById('confirmBtnKo').disabled = false;
+      document.getElementById('confirmBtnEn').disabled = false;
+      if (btn) btn.innerHTML = btnLabel;
+    })
+    .saveConfirm(payload, lang);
+}
+
+// ─── Step 3 결과 처리 ───
+function onSaveResult(r, lang) {
+  document.getElementById('confirmBtnKo').disabled = false;
+  document.getElementById('confirmBtnEn').disabled = false;
+  document.getElementById('confirmBtnKo').innerHTML = '📄 한글 PDF';
+  document.getElementById('confirmBtnEn').innerHTML = '📋 영문 PDF';
+
+  if (!r || r.error) {
+    setStatus('confirmStatus', 'error', '❌ ' + (r ? r.error : '저장 실패'));
+    return;
+  }
+
+  // Confirm ID 저장
+  if (r.confirmId) savedConfirmId = r.confirmId;
+
+  // PDF URL 저장
+  if (r.pdfUrl) savedPdfUrls[lang || 'ko'] = r.pdfUrl;
+
+  // 전화번호 세팅
+  if (r.phone && !document.getElementById('phoneInput').value) {
+    document.getElementById('phoneInput').value = r.phone;
+  }
+
+  // ── Confirm Tag ──
+  var tagArea = document.getElementById('confirmTagArea');
+  if (r.confirmId) {
+    tagArea.innerHTML =
+      '<div class="confirm-tag">' +
+        '<span class="dot"></span>' +
+        '확인서 번호: ' + r.confirmId +
+      '</div>';
+  }
+
+  // ── PDF 링크 ──
+  var linkArea = document.getElementById('pdfLinkArea');
+  if (r.pdfUrl) {
+    var langLabel = (lang === 'en') ? 'EN' : 'KO';
+    var badgeClass = (lang === 'en') ? 'en' : 'ko';
+    var existing = linkArea.innerHTML;
+    linkArea.innerHTML = existing +
+      '<a class="pdf-link-wrap" href="' + r.pdfUrl + '" target="_blank">' +
+        '<span class="pdf-icon">📄</span>' +
+        '<span>확인서 PDF 열기</span>' +
+        '<span class="lang-badge ' + badgeClass + '">' + langLabel + '</span>' +
+      '</a>';
+  }
+
+  setStatus('confirmStatus', '', '');
+  showStep(3);
+}
+
+// ═══════════════════════════════════════
+//  STEP 3 — SMS 발송
+// ═══════════════════════════════════════
+function doSms() {
+  var phone = document.getElementById('phoneInput').value.trim();
+  if (!phone) {
+    setStatus('smsStatus', 'error', '⚠️ 전화번호를 입력해 주세요.');
+    return;
+  }
+  if (!savedConfirmId && !savedPdfUrls.ko && !savedPdfUrls.en) {
+    setStatus('smsStatus', 'error', '⚠️ 먼저 확인서를 생성해 주세요.');
+    return;
+  }
+
+  var pdfUrl = savedPdfUrls.ko || savedPdfUrls.en || '';
+
+  var btn = document.getElementById('smsBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>발송 중...';
+  setStatus('smsStatus', 'info', '📱 SMS 발송 중...');
+
+  google.script.run
+    .withSuccessHandler(function(r) {
+      btn.disabled = false;
+      btn.innerHTML = '📱 SMS 발송';
+      if (r && r.success) {
+        setStatus('smsStatus', 'success', '✅ SMS 발송 완료!');
+      } else {
+        setStatus('smsStatus', 'error', '❌ 발송 실패: ' + (r ? r.error : '알 수 없는 오류'));
+      }
+    })
+    .withFailureHandler(function(e) {
+      btn.disabled = false;
+      btn.innerHTML = '📱 SMS 발송';
+      setStatus('smsStatus', 'error', '❌ 발송 실패: ' + e.message);
+    })
+    .sendConfirmSms(phone, savedConfirmId, pdfUrl);
+}
+</script>
+</body>
+</html>

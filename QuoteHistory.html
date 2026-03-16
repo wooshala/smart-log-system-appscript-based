@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 13px;
+      padding: 10px;
+      color: #222;
+    }
+    .topbar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    input, select, button {
+      font-size: 13px;
+      padding: 6px 8px;
+      box-sizing: border-box;
+    }
+    input[type="text"] {
+      flex: 1;
+      min-width: 120px;
+    }
+    button {
+      cursor: pointer;
+      border: 1px solid #ccc;
+      background: #f8f8f8;
+      border-radius: 4px;
+    }
+    button:hover {
+      background: #f0f0f0;
+    }
+    .section-title {
+      margin: 12px 0 6px;
+      font-weight: bold;
+      font-size: 13px;
+    }
+    .result-count {
+      margin: 6px 0;
+      color: #666;
+      font-size: 12px;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 8px;
+      margin-bottom: 8px;
+      background: #fff;
+    }
+    .card:hover {
+      background: #fafafa;
+    }
+    .row {
+      margin: 2px 0;
+      line-height: 1.4;
+    }
+    .label {
+      color: #666;
+      font-weight: bold;
+    }
+    .quote-id {
+      font-weight: bold;
+      color: #1a3c5e;
+      font-size: 14px;
+    }
+    .detail-box {
+      border: 1px solid #cfcfcf;
+      border-radius: 6px;
+      padding: 10px;
+      background: #fcfcfc;
+      margin-top: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 12px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 5px;
+      text-align: center;
+    }
+    th {
+      background: #f2f2f2;
+    }
+    .muted {
+      color: #777;
+      font-size: 12px;
+    }
+    .link-btn {
+      display: inline-block;
+      margin-top: 6px;
+      text-decoration: none;
+      border: 1px solid #ccc;
+      padding: 4px 8px;
+      border-radius: 4px;
+      color: #333;
+      background: #fff;
+    }
+    .link-btn:hover {
+      background: #f2f2f2;
+    }
+    .empty {
+      color: #888;
+      padding: 10px 0;
+    }
+    .loading {
+      color: #1a3c5e;
+      font-weight: bold;
+      margin: 8px 0;
+    }
+    .delete-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 24px;
+      height: 24px;
+      border: 1px solid #e0bcbc;
+      border-radius: 50%;
+      background: #fff;
+      color: #c0392b;
+      font-weight: bold;
+      line-height: 1;
+      padding: 0;
+    }
+    .delete-btn:hover {
+      background: #fdeeee;
+    }
+    .card-wrap {
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <select id="field">
+    <option value="all">전체</option>
+    <option value="customerName">고객명</option>
+    <option value="customerPhone">전화번호</option>
+    <option value="quoteId">견적ID</option>
+  </select>
+  <input type="text" id="keyword" placeholder="고객명 / 전화번호 / 견적ID 검색">
+  <button onclick="searchQuotes()">검색</button>
+  <button onclick="refreshHistory()">새로고침</button>
+</div>
+
+<div class="result-count" id="resultCount">검색어 없이 누르면 최근 견적이 표시됩니다.</div>
+<div id="loading" class="loading" style="display:none;">불러오는 중...</div>
+<div id="list"></div>
+<div id="detail"></div>
+
+<script>
+  function escapeHtml(v) {
+    return String(v || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function nl2br(v) {
+    return escapeHtml(v || '').replace(/\n/g, '<br>');
+  }
+
+  function showLoading(on) {
+    document.getElementById('loading').style.display = on ? 'block' : 'none';
+  }
+
+  function searchQuotes() {
+    const keyword = document.getElementById('keyword').value.trim();
+    const field = document.getElementById('field').value;
+
+    showLoading(true);
+    document.getElementById('detail').innerHTML = '';
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        showLoading(false);
+
+        if (!res || !res.ok) {
+          document.getElementById('list').innerHTML =
+            '<div class="empty">오류: ' + escapeHtml(res && res.error ? res.error : '알 수 없는 오류') + '</div>';
+          return;
+        }
+
+        const rows = Array.isArray(res.rows) ? res.rows : [];
+        document.getElementById('resultCount').textContent = '조회 결과: ' + rows.length + '건';
+
+        if (!rows.length) {
+          document.getElementById('list').innerHTML = '<div class="empty">조회된 견적이 없습니다.</div>';
+          return;
+        }
+
+        let html = '';
+
+        rows.forEach(function(row) {
+          try {
+            const quoteId = String(row && row.quoteId || '');
+            const customerName = String(row && row.customerName || '');
+            const customerPhone = String(row && row.customerPhone || '');
+            const createdAt = String(row && row.createdAt || '');
+            const updatedAt = String(row && row.updatedAt || '');
+            const itemsSummary = String(row && row.itemsSummary || '');
+            const totalAmountDisplay = String(row && row.totalAmountDisplay || '0원');
+            const lastSentAt = String(row && row.lastSentAt || '-');
+            const lastSendResult = String(row && row.lastSendResult || '-');
+            const pdfUrl = String(row && row.pdfUrl || '');
+
+            const safePdf = /^https?:\/\//i.test(pdfUrl);
+
+            html += `
+              <div class="card card-wrap">
+                <button class="delete-btn" onclick="deleteQuote('${escapeHtml(quoteId)}')" title="삭제">✕</button>
+
+                <div class="row quote-id">${escapeHtml(quoteId)}</div>
+                <div class="row"><span class="label">고객명:</span> ${escapeHtml(customerName)}</div>
+                <div class="row"><span class="label">전화번호:</span> ${escapeHtml(customerPhone)}</div>
+                <div class="row"><span class="label">생성일:</span> ${escapeHtml(createdAt)}</div>
+                <div class="row"><span class="label">수정일:</span> ${escapeHtml(updatedAt)}</div>
+                <div class="row"><span class="label">객실요약:</span> ${escapeHtml(itemsSummary)}</div>
+                <div class="row"><span class="label">총금액:</span> ${escapeHtml(totalAmountDisplay)}</div>
+                <div class="row"><span class="label">마지막 발송:</span> ${escapeHtml(lastSentAt)}</div>
+                <div class="row"><span class="label">발송결과:</span> ${escapeHtml(lastSendResult)}</div>
+
+                <div style="margin-top:6px;">
+                  <button onclick="openDetailDialog('${escapeHtml(quoteId)}')">상세보기</button>
+                  <button onclick="editQuote('${escapeHtml(quoteId)}')">견적 수정</button>
+                  ${
+                    safePdf
+                      ? `<a class="link-btn" href="${escapeHtml(pdfUrl)}" target="_blank">PDF 보기</a>`
+                      : `<span class="link-btn" style="color:#888; background:#f5f5f5; cursor:default;">PDF 없음</span>`
+                  }
+                </div>
+              </div>
+            `;
+          } catch (rowErr) {
+            console.error('row render error:', rowErr, row);
+          }
+        });
+
+        document.getElementById('list').innerHTML = html || '<div class="empty">표시 가능한 견적이 없습니다.</div>';
+      })
+      .getQuoteHistoryList({ keyword, field });
+  }
+
+  function refreshHistory() {
+    document.getElementById('detail').innerHTML = '';
+    searchQuotes();
+  }
+
+  function deleteQuote(quoteId) {
+    if (!quoteId) return;
+
+    const ok = confirm('이 견적 이력을 삭제하시겠습니까?\n\n삭제 후 복구가 어렵습니다.\n견적ID: ' + quoteId);
+    if (!ok) return;
+
+    showLoading(true);
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        showLoading(false);
+        console.log('getQuoteHistoryList result =', res);
+
+        if (!res || !res.ok) {
+          alert('삭제 실패: ' + (res && res.error ? res.error : '알 수 없는 오류'));
+          return;
+        }
+
+        document.getElementById('detail').innerHTML = '';
+        searchQuotes();
+      })
+      .withFailureHandler(function(e) {
+        showLoading(false);
+        alert('삭제 오류: ' + e.message);
+      })
+      .deleteQuoteHistory(quoteId);
+  }
+
+  function openDetailDialog(quoteId) {
+    if (!quoteId) return;
+
+    showLoading(true);
+
+    google.script.run
+      .withSuccessHandler(function() {
+        showLoading(false);
+      })
+      .withFailureHandler(function(e) {
+        showLoading(false);
+        alert('상세보기 열기 실패: ' + e.message);
+      })
+      .openQuoteDetailDialog(quoteId);
+  }
+
+
+function editQuote(quoteId) {
+
+  const qid = String(quoteId || '').trim();
+
+  if (!qid) {
+    alert('❌ 견적ID가 없습니다.');
+    return;
+  }
+
+  showLoading(true);
+
+  google.script.run
+    .withSuccessHandler(function() {
+      showLoading(false);
+    })
+    .withFailureHandler(function(e) {
+      showLoading(false);
+      alert('견적 수정 화면 열기 실패: ' + e.message);
+    })
+    .openQuoteEditSidebar(qid);
+}
+
+  document.getElementById('keyword').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') searchQuotes();
+  });
+
+  window.refreshQuoteHistoryList = function() {
+    refreshHistory();
+  };
+
+  searchQuotes();
+</script>
+
+</body>
+</html>

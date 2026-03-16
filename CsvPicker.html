@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+  <body style="font-family:Arial;padding:20px">
+    <h3>📁 CSV 파일 선택</h3>
+
+    <input type="file" id="file" accept=".csv">
+    <br><br>
+
+    <button type="button" id="btn" onclick="upload()"
+      style="
+        padding: 8px 20px;
+        font-size: 14px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      ">
+      📥 가져오기
+    </button>
+
+    <br><br>
+
+    <!-- 진행 상태 메시지 영역 -->
+    <div id="status" style="display:none; padding:10px; border-radius:4px;"></div>
+
+    <script>
+      function setStatus(msg, type) {
+        const el = document.getElementById('status');
+        const colors = {
+          loading : { bg: '#FFF9C4', text: '#5D4037', border: '#F9A825' },
+          success : { bg: '#E8F5E9', text: '#1B5E20', border: '#43A047' },
+          error   : { bg: '#FFEBEE', text: '#B71C1C', border: '#E53935' },
+        };
+        const c = colors[type] || colors.loading;
+        el.style.display      = 'block';
+        el.style.background   = c.bg;
+        el.style.color        = c.text;
+        el.style.border       = '1px solid ' + c.border;
+        el.innerHTML          = msg;
+      }
+
+      function setBtn(loading) {
+        const btn = document.getElementById('btn');
+        if (loading) {
+          btn.disabled         = true;
+          btn.innerHTML        = '⏳ 처리 중...';
+          btn.style.background = '#9E9E9E';
+          btn.style.cursor     = 'not-allowed';
+        } else {
+          btn.disabled         = false;
+          btn.innerHTML        = '📥 가져오기';
+          btn.style.background = '#4CAF50';
+          btn.style.cursor     = 'pointer';
+        }
+      }
+
+      function upload() {
+        const f = document.getElementById('file').files[0];
+        if (!f) {
+          setStatus('⚠️ 파일을 먼저 선택하세요.', 'error');
+          return;
+        }
+
+        // ① 버튼 비활성화 + 진행 메시지
+        setBtn(true);
+        setStatus('⏳ <b>' + f.name + '</b> 처리 중입니다... 잠시만 기다려주세요.', 'loading');
+
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+          const csvText = e.target.result;
+
+          google.script.run
+            .withSuccessHandler(function(res) {
+              // ② 성공
+              setBtn(false);
+              setStatus(
+                '✅ <b>입력 완료!</b><br>' +
+                '· 입력 건수: <b>' + (res.inserted || 0) + '행</b><br>' +
+                '· 입력 탭: '   + ((res.tabs && res.tabs.length) ? res.tabs.join(', ') : '(없음)') + '<br>' +
+                '· RES_DB: '    + (res.resDbA1 || '?'),
+                'success'
+              );
+              // 2초 후 자동 닫기
+              setTimeout(function() { google.script.host.close(); }, 2000);
+            })
+            .withFailureHandler(function(err) {
+              // ③ 실패
+              setBtn(false);
+              setStatus(
+                '❌ <b>오류 발생</b><br>' + (err && err.message ? err.message : String(err)),
+                'error'
+              );
+            })
+            .importCsvText(csvText, f.name);
+        };
+
+        reader.readAsText(f, 'UTF-8');
+      }
+    </script>
+  </body>
+</html>
