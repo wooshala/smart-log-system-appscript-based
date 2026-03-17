@@ -10,18 +10,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup Node
-        uses: actions/setup-node@v3
+- uses: actions/checkout@v4
+- name: Setup Node
+  uses: actions/setup-node@v4
         with:
           node-version: 18
 
       - name: Install clasp
         run: npm install -g @google/clasp
 
-      - name: Setup clasp auth
-        run: echo '${{ secrets.CLASP_TOKEN }}' > ~/.clasprc.json
+- name: Setup clasp auth
+  shell: bash
+  run: |
+    echo '${{ secrets.CLASP_TOKEN }}' > /tmp/clasp-token.json
+    ACCESS_TOKEN=$(python -c "import json; print(json.load(open('/tmp/clasp-token.json'))['tokens']['default']['access_token'])")
+    REFRESH_TOKEN=$(python -c "import json; print(json.load(open('/tmp/clasp-token.json'))['tokens']['default']['refresh_token'])")
+    cat > ~/.clasprc.json <<EOF
+    {
+      "token": {
+        "access_token": "$ACCESS_TOKEN",
+        "refresh_token": "$REFRESH_TOKEN",
+        "token_type": "Bearer",
+        "scope": "https://www.googleapis.com/auth/script.deployments https://www.googleapis.com/auth/script.projects https://www.googleapis.com/auth/script.webapp.deploy https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/service.management https://www.googleapis.com/auth/logging.read https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/cloud-platform"
+      }
+    }
+    EOF
 
       - name: Push to Apps Script
         run: clasp push
