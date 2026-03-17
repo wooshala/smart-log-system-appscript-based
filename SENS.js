@@ -25,8 +25,7 @@ function sendSms_(to, content) {
       return { ok: false, error: 'SENS Script Properties 설정값 누락' };
     }
 
-    var url =
-      'https://sens.apigw.ntruss.com/sms/v2/services/' +
+    var url = 'https://sens.apigw.ntruss.com/sms/v2/services/' +
       cfg.SERVICE_ID +
       '/messages';
 
