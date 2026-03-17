@@ -55,18 +55,19 @@ function sendSms_(to, content) {
 
     var code = response.getResponseCode();
     var text = response.getContentText();
-    var result;
+    var result = {};
 
     if (text) {
       result = JSON.parse(text);
-    } else {
-      result = {};
     }
 
     Logger.log('[sendSms_] HTTP ' + code + ' -> ' + JSON.stringify(result));
 
     if (code === 202) {
-      return { ok: true, requestId: result.requestId };
+      return {
+        ok: true,
+        requestId: result.requestId || ''
+      };
     }
 
     return {
