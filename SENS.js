@@ -3,7 +3,7 @@
 // =====================================================
 
 function getSensConfig_() {
-  const props = PropertiesService.getScriptProperties();
+  var props = PropertiesService.getScriptProperties();
   return {
     ACCESS_KEY: props.getProperty('SENS_ACCESS_KEY') || '',
     SECRET_KEY: props.getProperty('SENS_SECRET_KEY') || '',
@@ -14,24 +14,26 @@ function getSensConfig_() {
 
 function sendSms_(to, content) {
   try {
-    const cfg = getSensConfig_();
+    var cfg = getSensConfig_();
 
-    const phone = String(to || '').replace(/[^0-9]/g, '');
-    if (!phone) return { ok: false, error: '전화번호 없음' };
+    var phone = String(to || '').replace(/[^0-9]/g, '');
+    if (!phone) {
+      return { ok: false, error: '전화번호 없음' };
+    }
 
     if (!cfg.ACCESS_KEY || !cfg.SECRET_KEY || !cfg.SERVICE_ID || !cfg.SENDER) {
       return { ok: false, error: 'SENS Script Properties 설정값 누락' };
     }
 
-    const url =
+    var url =
       'https://sens.apigw.ntruss.com/sms/v2/services/' +
       cfg.SERVICE_ID +
       '/messages';
 
-    const timestamp = String(Date.now());
-    const signature = makeSensSignature_(timestamp);
+    var timestamp = String(Date.now());
+    var signature = makeSensSignature_(timestamp);
 
-    const body = JSON.stringify({
+    var body = JSON.stringify({
       type: 'LMS',
       contentType: 'COMM',
       countryCode: '82',
@@ -40,7 +42,7 @@ function sendSms_(to, content) {
       messages: [{ to: phone }]
     });
 
-    const response = UrlFetchApp.fetch(url, {
+    var response = UrlFetchApp.fetch(url, {
       method: 'post',
       contentType: 'application/json; charset=utf-8',
       headers: {
@@ -52,20 +54,25 @@ function sendSms_(to, content) {
       muteHttpExceptions: true
     });
 
-    const code = response.getResponseCode();
-    const text = response.getContentText();
-    let result = {};
+    var code = response.getResponseCode();
+    var text = response.getContentText();
+    var result = {};
 
-    try {
-      result = text ? JSON.parse(text) : {};
-    } catch (parseErr) {
-      result = { raw: text };
+    if (text) {
+      if (text.indexOf('{') === 0 || text.indexOf('[') === 0) {
+        result = JSON.parse(text);
+      } else {
+        result = { raw: text };
+      }
     }
 
-    Logger.log('[sendSms_] HTTP %s → %s', code, JSON.stringify(result));
+    Logger.log('[sendSms_] HTTP ' + code + ' -> ' + JSON.stringify(result));
 
     if (code === 202) {
-      return { ok: true, requestId: result.requestId || '' };
+      return {
+        ok: true,
+        requestId: result.requestId || ''
+      };
     }
 
     return {
@@ -81,13 +88,13 @@ function sendSms_(to, content) {
 
 // ── SENS HMAC-SHA256 서명 생성 ────────────────────────
 function makeSensSignature_(timestamp) {
-  const cfg = getSensConfig_();
+  var cfg = getSensConfig_();
 
-  const method = 'POST';
-  const url = '/sms/v2/services/' + cfg.SERVICE_ID + '/messages';
-  const message = method + ' ' + url + '\n' + timestamp + '\n' + cfg.ACCESS_KEY;
+  var method = 'POST';
+  var url = '/sms/v2/services/' + cfg.SERVICE_ID + '/messages';
+  var message = method + ' ' + url + '\n' + timestamp + '\n' + cfg.ACCESS_KEY;
 
-  const signature = Utilities.computeHmacSha256Signature(
+  var signature = Utilities.computeHmacSha256Signature(
     message,
     cfg.SECRET_KEY,
     Utilities.Charset.UTF_8
@@ -99,23 +106,32 @@ function makeSensSignature_(timestamp) {
 // 사이드바에서 직접 전화번호+내용으로 SMS 발송
 function sendSmsDirectly(phone, quoteId) {
   try {
-    const dbSh = ensureDbSheet_();
-    const data = dbSh.getDataRange().getValues();
-    const header = data[0];
-    const row = data.slice(1).find(r => String(r[0]) === String(quoteId));
+    var dbSh = ensureDbSheet_();
+    var data = dbSh.getDataRange().getValues();
+    var header = data[0];
+    var row = null;
+    var i;
+    var rec = {};
+    var msg;
+
+    for (i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === String(quoteId)) {
+        row = data[i];
+        break;
+      }
+    }
 
     if (!row) {
       return { ok: false, error: '견적 ID 없음. 먼저 저장하세요.' };
     }
 
-    const rec = {};
-    header.forEach((h, i) => {
-      rec[h] = row[i];
-    });
+    for (i = 0; i < header.length; i++) {
+      rec[header[i]] = row[i];
+    }
 
     rec['전화번호'] = phone;
+    msg = buildLmsMessage_(rec);
 
-    const msg = buildLmsMessage_(rec);
     return sendSms_(phone, msg);
 
   } catch (e) {
@@ -123,19 +139,19 @@ function sendSmsDirectly(phone, quoteId) {
   }
 }
 
-// ── 테스트용 (편집기에서 직접 실행 가능) ─────────────
+// ── 테스트용 ─────────────────────────────────────────
 function testSens() {
-  const result = sendSms_('01036636680', '[라벨호텔] SENS 테스트 메시지입니다.');
+  var result = sendSms_('01036636680', '[라벨호텔] SENS 테스트 메시지입니다.');
   Logger.log('테스트 결과: ' + JSON.stringify(result));
 }
 
 function checkSensConfig() {
-  const cfg = getSensConfig_();
+  var cfg = getSensConfig_();
 
   Logger.log('ACCESS_KEY 길이: ' + cfg.ACCESS_KEY.length);
   Logger.log('SECRET_KEY 길이: ' + cfg.SECRET_KEY.length);
-  Logger.log('공백 포함(ACCESS): ' + cfg.ACCESS_KEY.includes(' '));
-  Logger.log('공백 포함(SECRET): ' + cfg.SECRET_KEY.includes(' '));
+  Logger.log('공백 포함(ACCESS): ' + (cfg.ACCESS_KEY.indexOf(' ') > -1));
+  Logger.log('공백 포함(SECRET): ' + (cfg.SECRET_KEY.indexOf(' ') > -1));
   Logger.log('ACCESS_KEY 끝 5자: [' + cfg.ACCESS_KEY.slice(-5) + ']');
   Logger.log('SECRET_KEY 끝 5자: [' + cfg.SECRET_KEY.slice(-5) + ']');
 }
