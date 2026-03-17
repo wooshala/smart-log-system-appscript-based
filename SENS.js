@@ -12,11 +12,12 @@ function getSensConfig_() {
   };
 }
 
+// ── 외부에서 호출하는 메인 함수 ──────────────────────
 function sendSms_(to, content) {
   try {
     var cfg = getSensConfig_();
-
     var phone = String(to || '').replace(/[^0-9]/g, '');
+
     if (!phone) {
       return { ok: false, error: '전화번호 없음' };
     }
@@ -26,8 +27,7 @@ function sendSms_(to, content) {
     }
 
     var url = 'https://sens.apigw.ntruss.com/sms/v2/services/' +
-      cfg.SERVICE_ID +
-      '/messages';
+              cfg.SERVICE_ID + '/messages';
 
     var timestamp = String(Date.now());
     var signature = makeSensSignature_(timestamp);
@@ -55,32 +55,27 @@ function sendSms_(to, content) {
 
     var code = response.getResponseCode();
     var text = response.getContentText();
-    var result = {};
+    var result;
 
     if (text) {
-      if (text.indexOf('{') === 0 || text.indexOf('[') === 0) {
-        result = JSON.parse(text);
-      } else {
-        result = { raw: text };
-      }
+      result = JSON.parse(text);
+    } else {
+      result = {};
     }
 
     Logger.log('[sendSms_] HTTP ' + code + ' -> ' + JSON.stringify(result));
 
     if (code === 202) {
-      return {
-        ok: true,
-        requestId: result.requestId || ''
-      };
+      return { ok: true, requestId: result.requestId };
     }
 
     return {
       ok: false,
-      error: result.errorMessage || result.message || ('HTTP ' + code)
+      error: result.errorMessage || ('HTTP ' + code)
     };
 
   } catch (e) {
-    Logger.log('[sendSms_] 오류: ' + e.message);
+    Logger.log('[sendSms_] error: ' + e.message);
     return { ok: false, error: e.message };
   }
 }
@@ -88,7 +83,6 @@ function sendSms_(to, content) {
 // ── SENS HMAC-SHA256 서명 생성 ────────────────────────
 function makeSensSignature_(timestamp) {
   var cfg = getSensConfig_();
-
   var method = 'POST';
   var url = '/sms/v2/services/' + cfg.SERVICE_ID + '/messages';
   var message = method + ' ' + url + '\n' + timestamp + '\n' + cfg.ACCESS_KEY;
@@ -147,10 +141,10 @@ function testSens() {
 function checkSensConfig() {
   var cfg = getSensConfig_();
 
-  Logger.log('ACCESS_KEY 길이: ' + cfg.ACCESS_KEY.length);
-  Logger.log('SECRET_KEY 길이: ' + cfg.SECRET_KEY.length);
-  Logger.log('공백 포함(ACCESS): ' + (cfg.ACCESS_KEY.indexOf(' ') > -1));
-  Logger.log('공백 포함(SECRET): ' + (cfg.SECRET_KEY.indexOf(' ') > -1));
-  Logger.log('ACCESS_KEY 끝 5자: [' + cfg.ACCESS_KEY.slice(-5) + ']');
-  Logger.log('SECRET_KEY 끝 5자: [' + cfg.SECRET_KEY.slice(-5) + ']');
+  Logger.log('ACCESS_KEY length: ' + cfg.ACCESS_KEY.length);
+  Logger.log('SECRET_KEY length: ' + cfg.SECRET_KEY.length);
+  Logger.log('ACCESS contains space: ' + (cfg.ACCESS_KEY.indexOf(' ') > -1));
+  Logger.log('SECRET contains space: ' + (cfg.SECRET_KEY.indexOf(' ') > -1));
+  Logger.log('ACCESS_KEY last 5: [' + cfg.ACCESS_KEY.slice(-5) + ']');
+  Logger.log('SECRET_KEY last 5: [' + cfg.SECRET_KEY.slice(-5) + ']');
 }
